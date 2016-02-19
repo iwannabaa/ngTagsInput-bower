@@ -2,10 +2,10 @@
  * ngTagsInput v3.0.0
  * http://mbenford.github.io/ngTagsInput
  *
- * Copyright (c) 2013-2015 Michael Benford
+ * Copyright (c) 2013-2016 Michael Benford
  * License: MIT
  *
- * Generated at 2015-07-13 02:08:11 -0300
+ * Generated at 2016-02-19 10:34:37 -0600
  */
 (function() {
 'use strict';
@@ -285,10 +285,14 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "tagsInput
             };
 
             scope.newTag = {
-                text: function(value) {
+                text: function(value, event) {
                     if (angular.isDefined(value)) {
                         scope.text = value;
-                        events.trigger('input-change', value);
+                        if (value === '' && event === 'tag-added') {
+                            $timeout(function() {input.blur();});
+                        } else {
+                            events.trigger('input-change', value);
+                        }
                     }
                     else {
                         return scope.text || '';
@@ -377,7 +381,7 @@ tagsInput.directive('tagsInput', ["$timeout", "$document", "$window", "tagsInput
                 .on('tag-removed', scope.onTagRemoved)
                 .on('tag-clicked', scope.onTagClicked)
                 .on('tag-added', function() {
-                    scope.newTag.text('');
+                    scope.newTag.text('', 'tag-added');
                 })
                 .on('tag-added tag-removed', function() {
                     scope.tags = tagList.items;
@@ -683,8 +687,8 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
 
             options.tagsInput = tagsInput.getOptions();
 
-            shouldLoadSuggestions = function(value) {
-                return value && value.length >= options.minLength || !value && options.loadOnEmpty;
+            shouldLoadSuggestions = function(value, event) {
+                return value && value.length >= options.minLength || (!value && options.loadOnEmpty && !tagsInput.getTags().length) || (!value && options.loadOnEmpty && tagsInput.getTags().length && event === 'focus');
             };
 
             scope.addSuggestionByIndex = function(index) {
@@ -698,7 +702,6 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
                 if (suggestionList.selected) {
                     tagsInput.addTag(angular.copy(suggestionList.selected));
                     suggestionList.reset();
-                    tagsInput.focusInput();
 
                     added = true;
                 }
@@ -723,7 +726,7 @@ tagsInput.directive('autoComplete', ["$document", "$timeout", "$sce", "$q", "tag
                 })
                 .on('input-focus', function() {
                     var value = tagsInput.getCurrentTagText();
-                    if (options.loadOnFocus && shouldLoadSuggestions(value)) {
+                    if (options.loadOnFocus && shouldLoadSuggestions(value), 'focus') {
                         suggestionList.load(value, tagsInput.getTags());
                     }
                 })
